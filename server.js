@@ -71,6 +71,17 @@ async function sendToTelegram(text) {
   return res.json();
 }
 
+// ─── Отправка на произвольный chat_id ───────────────────────
+async function sendToTelegramTo(chatId, text) {
+  const url  = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+  const res = await fetch(url, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" })
+  });
+  return res.json();
+}
+
 // ─── Маршрут — принимает данные с сайта ───────────────────────
 app.post("/send", async (req, res) => {
   const clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
@@ -82,7 +93,7 @@ app.post("/send", async (req, res) => {
 
   // Сайт Jewel Bliss шлёт готовый HTML-текст в поле message
   // Обычные формы могут слать отдельные поля name/phone/email
-  const { message, name, phone, email, subject } = req.body;
+  const { message, name, phone, email, subject, extra_chat_id } = req.body;
 
   if (!message && !name && !email) {
     return res.status(400).json({ ok: false, error: "Форма пустая" });
@@ -100,7 +111,9 @@ app.post("/send", async (req, res) => {
   ].filter(Boolean).join("\n");
 
   try {
-    await sendToTelegram(text);
+    const sends = [sendToTelegram(text)];
+    if (extra_chat_id) sends.push(sendToTelegramTo(extra_chat_id, text));
+    await Promise.all(sends);
     res.json({ ok: true, message: "Сообщение отправлено!" });
   } catch (err) {
     console.error("Telegram error:", err.message);
