@@ -19,7 +19,7 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
 app.use(cors({
   origin: (origin, cb) => {
     // разрешить запросы без origin (Postman, curl) только в dev
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    if (ALLOWED_ORIGINS.includes("*") || !origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
     cb(new Error("Blocked by CORS"));
   }
 }));
